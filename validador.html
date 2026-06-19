@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Movilidad Estudiantil — Validador de pases</title>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f4f6fb; --card:#ffffff; --ink:#1c2433; --muted:#5b6678;
+  --line:#e2e7f0; --brand:#1d4ed8; --brand-d:#1736a3;
+  --ok:#0f8a4d; --ok-bg:#e7f6ee; --err:#c2342b; --err-bg:#fdecea;
+  --warn:#b7791f; --warn-bg:#fef6e6; --chip:#eef2fb; --ai:#6d28d9; --ai-bg:#f3effd;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:15px;line-height:1.5}
+.wrap{max-width:880px;margin:0 auto;padding:18px 18px 60px}
+header.top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+h1{font-size:19px;margin:0 0 2px}
+.sub{color:var(--muted);font-size:13px;margin:0}
+.presets{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 13px;border-radius:9px;
+  font-size:13.5px;font-weight:600;cursor:pointer;transition:.15s}
+.btn:hover{border-color:var(--brand);color:var(--brand)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{background:var(--brand-d);color:#fff}
+.btn.ghost{background:transparent}
+.btn.ai{border-color:var(--ai);color:var(--ai)}
+.btn.ai:hover{background:var(--ai-bg)}
+.btn.preset-clean{border-color:var(--ok);color:var(--ok)}
+.btn.preset-clean:hover{background:var(--ok-bg)}
+.btn.preset-complex{border-color:var(--warn);color:var(--warn)}
+.btn.preset-complex:hover{background:var(--warn-bg)}
+.btn:disabled{opacity:.5;cursor:wait}
+
+.tabs{display:flex;gap:6px;margin:14px 0 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tab{padding:9px 15px;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.active{color:var(--brand);border-bottom-color:var(--brand)}
+
+.steps{display:flex;gap:6px;margin:6px 0 16px}
+.step{flex:1;text-align:center;font-size:12px;color:var(--muted);position:relative;padding-top:24px}
+.step .dot{position:absolute;top:0;left:50%;transform:translateX(-50%);width:24px;height:24px;border-radius:50%;
+  background:#fff;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:var(--muted)}
+.step.active .dot{border-color:var(--brand);background:var(--brand);color:#fff}
+.step.done .dot{border-color:var(--ok);background:var(--ok);color:#fff}
+.step.active{color:var(--ink);font-weight:600}
+.step::after{content:"";position:absolute;top:11px;left:-50%;width:100%;height:2px;background:var(--line)}
+.step:first-child::after{display:none}
+.step.done::after,.step.active::after{background:var(--brand)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 1px 2px rgba(20,30,60,.04)}
+.card h2{font-size:16px;margin:0 0 4px}
+.card .lead{color:var(--muted);font-size:13px;margin:0 0 16px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:560px){.grid{grid-template-columns:1fr}}
+label.fld{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:5px}
+select,input[type=text],textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;
+  font-size:14px;font-family:inherit;background:#fff;color:var(--ink)}
+select:focus,input:focus,textarea:focus{outline:none;border-color:var(--brand)}
+textarea{min-height:80px;resize:vertical}
+.hintbox{background:var(--chip);border-radius:9px;padding:10px 12px;font-size:12.5px;color:#33415c;margin-top:14px}
+
+.aibox{border:1px solid #e2d9f7;background:var(--ai-bg);border-radius:11px;padding:14px;margin-top:16px}
+.aibox h3{font-size:13.5px;margin:0 0 4px;color:var(--ai);display:flex;align-items:center;gap:7px}
+.aibox .desc{font-size:12px;color:#5a4b86;margin:0 0 10px}
+.aiout{background:#fff;border:1px solid #e2d9f7;border-radius:9px;padding:12px;font-size:13px;margin-top:10px;white-space:pre-wrap}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid #d6c8f2;border-top-color:var(--ai);border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.docs{margin-top:18px}
+.docs h3{font-size:13px;margin:0 0 9px;color:var(--muted)}
+.doc{display:flex;align-items:center;gap:11px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;cursor:pointer;user-select:none;transition:.12s}
+.doc:hover{border-color:#c8d2e6}
+.doc .tick{width:22px;height:22px;border-radius:6px;border:2px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff}
+.doc.on .tick{background:var(--ok);border-color:var(--ok)}
+.doc.off .tick{background:#fff;border-color:var(--err);color:var(--err)}
+.doc .txt{flex:1}.doc .txt b{display:block;font-size:14px}.doc .txt span{font-size:12px;color:var(--muted)}
+.doc .state{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:20px}
+.doc.on .state{background:var(--ok-bg);color:var(--ok)}
+.doc.off .state{background:var(--err-bg);color:var(--err)}
+
+.checkrow{display:flex;align-items:flex-start;gap:11px;padding:12px 14px;border-radius:10px;margin-bottom:9px;border:1px solid var(--line)}
+.checkrow.ok{background:var(--ok-bg);border-color:#bce6cf}
+.checkrow.err{background:var(--err-bg);border-color:#f3c9c5}
+.checkrow .ic{font-size:17px;line-height:1.3;flex:none}
+.checkrow .body b{display:block;font-size:13.5px}
+.checkrow .body .rf{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.3px}
+.checkrow .body .msg{font-size:13px;margin-top:2px}.checkrow.err .msg{color:var(--err)}
+
+.banner{padding:13px 15px;border-radius:11px;font-size:13.5px;margin-bottom:16px;display:flex;gap:10px;align-items:flex-start}
+.banner b{display:block;margin-bottom:1px}
+.banner.ok{background:var(--ok-bg);color:#0c6d3d;border:1px solid #bce6cf}
+.banner.warn{background:var(--warn-bg);color:#8a5a08;border:1px solid #f0dcae}
+.banner.err{background:var(--err-bg);color:#9c281f;border:1px solid #f3c9c5}
+
+.tag{display:inline-block;font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:20px;background:var(--chip);color:var(--brand)}
+.tag.complex{background:var(--warn-bg);color:var(--warn)}
+.tag.std{background:var(--ok-bg);color:var(--ok)}
+
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:13.5px;margin:4px 0 0}
+.kv dt{color:var(--muted)}.kv dd{margin:0;font-weight:600}
+
+.report{border:1px dashed var(--line);border-radius:11px;padding:18px;background:#fbfcfe;font-size:13.5px}
+.report h4{margin:0 0 3px;font-size:14px}
+.report .small{color:var(--muted);font-size:12px;margin:0 0 14px}
+.report .line{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--line)}
+.report .line span:first-child{color:var(--muted);flex:none}
+.report .line b{text-align:right}
+.report .verdict{margin-top:14px;padding:12px;border-radius:9px;font-weight:600}
+
+table.rules{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+table.rules th,table.rules td{border:1px solid var(--line);padding:7px 10px;text-align:center}
+table.rules th{background:var(--chip);color:#33415c;font-size:12px}
+table.rules td.hl{background:#fff7e6;font-weight:700;color:var(--warn)}
+table.rules td.l{text-align:left}
+.badge{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px}
+.badge.val{background:var(--ok-bg);color:var(--ok)}
+.badge.prop{background:var(--warn-bg);color:var(--warn)}
+
+.filelist a{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:11px 13px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;text-decoration:none;color:var(--ink);transition:.12s}
+.filelist a:hover{border-color:var(--brand);background:#f7f9ff}
+.filelist .ft b{display:block;font-size:13.5px}
+.filelist .ft span{font-size:11.5px;color:var(--muted)}
+.filelist .fbadge{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:6px;background:var(--chip);color:var(--brand);flex:none}
+
+.chat{display:flex;flex-direction:column;gap:10px}
+.msg{padding:10px 13px;border-radius:11px;font-size:13.5px;max-width:88%;white-space:pre-wrap}
+.msg.u{align-self:flex-end;background:var(--brand);color:#fff;border-bottom-right-radius:3px}
+.msg.a{align-self:flex-start;background:#fff;border:1px solid #e2d9f7;border-bottom-left-radius:3px}
+.chatin{display:flex;gap:8px;margin-top:12px}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.chip{font-size:12px;border:1px solid var(--line);background:#fff;border-radius:20px;padding:5px 11px;cursor:pointer}
+.chip:hover{border-color:var(--ai);color:var(--ai)}
+
+.nav{display:flex;justify-content:space-between;margin-top:20px;gap:10px}
+.foot{text-align:center;color:var(--muted);font-size:11.5px;margin-top:22px}
+.pill{font-size:11px;background:var(--chip);color:var(--brand);padding:3px 9px;border-radius:20px;font-weight:700}
+.aipill{font-size:10px;background:var(--ai-bg);color:var(--ai);padding:2px 7px;border-radius:20px;font-weight:700}
+.hide{display:none}
+.muted-sm{font-size:12px;color:var(--muted)}
+.reflink{font-size:12.5px}.reflink a{color:var(--brand)}
+.repocountry{margin-top:16px}
+.repocountry h3{font-size:14px;margin:0 0 4px;display:flex;gap:10px;align-items:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Movilidad Estudiantil — Validador de pases <span class="aipill">+ IA</span></h1>
+      <p class="sub">Bolivia validado · resto: equivalencia estructural (MERCOSUR) · asistido por IA</p>
+    </div>
+    <div class="presets">
+      <button class="btn preset-clean" onclick="loadPreset('clean')">&#9654; Caso limpio</button>
+      <button class="btn preset-complex" onclick="loadPreset('complex')">&#9654; Caso complejo</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" id="tabSim" onclick="switchTab('sim')">Simulador del trámite</div>
+    <div class="tab" id="tabRep" onclick="switchTab('rep')">Repositorio de reglas</div>
+    <div class="tab" id="tabIA" onclick="switchTab('ia')">Asistente IA</div>
+  </div>
+
+  <!-- ============ SIMULADOR ============ -->
+  <div id="viewSim">
+  <div class="steps" id="stepper"></div>
+
+  <!-- STEP 1 -->
+  <section class="card" id="step1">
+    <h2>Paso 1 &middot; Datos del expediente</h2>
+    <p class="lead">Cargá los datos del alumno o usá la lectura automática de la libreta con IA.</p>
+
+    <div class="aibox">
+      <h3>&#129302; Lectura automática de la libreta (IA / OCR)</h3>
+      <p class="desc">Subí una foto o PDF de la libreta (OCR) o pegá el texto. La IA extrae los campos y completa el formulario.</p>
+      <label class="fld">Archivo de la libreta (imagen o PDF)</label>
+      <input type="file" id="libFile" accept="image/*,application/pdf" style="margin-bottom:8px">
+      <div style="margin-bottom:10px"><button class="btn ai" id="btnOcr" onclick="ocrLibreta()">Leer archivo con OCR</button></div>
+      <label class="fld">O pegá el texto de la libreta</label>
+      <textarea id="libreta" placeholder="Ej.: Estado Plurinacional de Bolivia — Libreta Escolar. Gestión 2025. Año de escolaridad: 4° de secundaria. Informe de promoción: PROMOVIDO. Firma y sello: Director ..."></textarea>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn ai" id="btnExtract" onclick="extractLibreta()">Extraer del texto y autocompletar</button>
+        <button class="btn ghost" onclick="fillSampleLibreta()">Usar ejemplo</button>
+      </div>
+      <div class="aiout hide" id="extractOut"></div>
+      <p class="desc" style="margin-top:10px">El OCR de imagen se procesa con la IA de Cowork. Si tu entorno no procesa imágenes, usá el pegado de texto o subí el archivo al chat de Cowork.</p>
+    </div>
+
+    <div class="grid" style="margin-top:16px">
+      <div>
+        <label class="fld">País de origen</label>
+        <select id="pais">
+          <option value="Bolivia">Bolivia (6+6)</option>
+          <option value="Brasil">Brasil (9+3)</option>
+          <option value="Chile">Chile (8+4)</option>
+          <option value="Paraguay">Paraguay (9+3)</option>
+          <option value="Uruguay">Uruguay (6+6)</option>
+        </select>
+      </div>
+      <div>
+        <label class="fld">Modalidad / área destino (CABA)</label>
+        <select id="modalidad"><option value="Bachiller">Bachiller</option><option value="Tecnica">Técnica</option></select>
+      </div>
+      <div>
+        <label class="fld">Año de secundaria cursado (origen)</label>
+        <select id="anio"></select>
+      </div>
+      <div>
+        <label class="fld">Informe de Promoción</label>
+        <select id="promo"><option value="promociona">Promociona</option><option value="no">No promociona (adeuda materias)</option></select>
+      </div>
+      <div>
+        <label class="fld">Gestión (ciclo lectivo)</label>
+        <select id="gestion"><option>2026</option><option selected>2025</option><option>2024</option></select>
+      </div>
+      <div>
+        <label class="fld">Cuatrimestre de ingreso</label>
+        <select id="cuatri"><option value="1">1° cuatrimestre</option><option value="2">2° cuatrimestre</option></select>
+      </div>
+    </div>
+
+    <div class="docs">
+      <h3>Validación documental (click para marcar / desmarcar)</h3>
+      <div class="doc" data-doc="sello" onclick="toggleDoc('sello')">
+        <div class="tick"></div>
+        <div class="txt"><b>Firma y sello de autoridad competente</b><span>La documentación debe estar certificada por autoridad escolar</span></div>
+        <div class="state"></div>
+      </div>
+      <div class="doc" data-doc="campos" onclick="toggleDoc('campos')">
+        <div class="tick"></div>
+        <div class="txt"><b>Campos completos de la libreta</b><span>Gestión, año de escolaridad e informe de promoción legibles</span></div>
+        <div class="state"></div>
+      </div>
+    </div>
+    <div class="hintbox" id="step1hint"></div>
+
+    <div class="nav">
+      <span></span>
+      <button class="btn primary" onclick="goValidate()">Validar documentación &rarr;</button>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="card hide" id="step2">
+    <h2>Paso 2 &middot; Validación</h2>
+    <p class="lead">Verificación de la documentación contra los requisitos del trámite.</p>
+    <div id="valBanner"></div>
+    <div id="valChecks"></div>
+    <div class="nav">
+      <button class="btn ghost" onclick="show(1)">&larr; Volver a datos</button>
+      <div style="display:flex;gap:10px">
+        <button class="btn" id="btnComplex" onclick="goAnalysis(true)">Continuar como caso complejo</button>
+        <button class="btn primary" id="btnContinue" onclick="goAnalysis(false)">Continuar &rarr;</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="card hide" id="step3">
+    <h2>Paso 3 &middot; Análisis de equivalencia</h2>
+    <p class="lead" id="an3lead">Se aplican las reglas de equivalencia del país de origen.</p>
+    <div id="anBanner"></div>
+    <div class="card" style="box-shadow:none;background:#fbfcfe">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <b style="font-size:14px">Reglas aplicadas</b>
+        <span id="caseTag" class="tag"></span>
+      </div>
+      <div id="anRules"></div>
+      <dl class="kv" id="anResult" style="margin-top:14px"></dl>
+    </div>
+    <div class="aibox">
+      <h3>&#129302; Explicación del caso (IA)</h3>
+      <p class="desc">La IA explica por qué el caso es estándar o complejo y qué conviene revisar.</p>
+      <button class="btn ai" id="btnExplain" onclick="explainCase()">Explicar este caso</button>
+      <div class="aiout hide" id="explainOut"></div>
+    </div>
+    <div class="nav">
+      <button class="btn ghost" onclick="show(2)">&larr; Volver a validación</button>
+      <button class="btn primary" onclick="goReport()">Generar informe &rarr;</button>
+    </div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="card hide" id="step4">
+    <h2>Paso 4 &middot; Borrador de informe</h2>
+    <p class="lead">Informe de salida con los campos según la modalidad. Agregá observaciones antes de emitir.</p>
+    <div class="report" id="reportBox"></div>
+    <div class="aibox">
+      <h3>&#129302; Redacción automática (IA)</h3>
+      <p class="desc">La IA redacta el informe formal y una observación recomendada para el operador.</p>
+      <button class="btn ai" id="btnDraft" onclick="draftReport()">Redactar informe y observación</button>
+      <div class="aiout hide" id="draftOut"></div>
+    </div>
+    <div style="margin-top:16px">
+      <label class="fld">Observaciones del operador</label>
+      <textarea id="obs" placeholder="Observación sugerida: dejar libertad a la escuela para aplicar la resolución que corresponda…"></textarea>
+    </div>
+    <div class="nav">
+      <button class="btn ghost" onclick="show(3)">&larr; Volver al análisis</button>
+      <button class="btn primary" onclick="emit()">&#10003; Emitir informe</button>
+    </div>
+    <div id="emitMsg"></div>
+  </section>
+  </div>
+
+  <!-- ============ REPOSITORIO ============ -->
+  <div id="viewRep" class="hide">
+    <section class="card">
+      <h2>Países limítrofes — estado de reglas</h2>
+      <p class="lead">Estructura educativa y estado de las reglas. CABA: 7 primaria + 5 secundaria (Bachiller) / 6 (Técnica).</p>
+      <table class="rules">
+        <thead><tr><th>País</th><th>Prim + Sec</th><th>Años de secundaria</th><th>Estado</th></tr></thead>
+        <tbody id="paisStatus"></tbody>
+      </table>
+      <div class="hintbox" style="margin-top:14px">
+        <b>Metodología (consistente con la regla documentada de Bolivia):</b><br>
+        Año de ingreso CABA = <i>años de primaria del país + año de secundaria cursado − 6</i>, con tope en 5° (Bachiller) / 6° (Técnica), si promociona.
+        Bolivia está validado por el área; el resto son propuestas estructurales (base MERCOSUR) a validar.
+      </div>
+      <p class="reflink" style="margin-top:12px">Referencia: <a href="https://www.argentina.gob.ar/sites/default/files/10-anexo-x-tabla-de-equivalencias-mercosur_1.pdf" target="_blank" rel="noopener">Tabla de Equivalencias MERCOSUR</a>.</p>
+    </section>
+
+    <section class="card" style="margin-top:14px">
+      <h2>Tablas año origen &rarr; año destino</h2>
+      <p class="lead">Mapeo por país y modalidad.</p>
+      <div id="repoTables"></div>
+    </section>
+
+    <section class="card" style="margin-top:14px">
+      <h2>Documentos de referencia (interno)</h2>
+      <p class="lead">Disponibles en la carpeta interna del proyecto, con acceso restringido al equipo.</p>
+      <div class="filelist" id="driveList"><p class="muted-sm">Cargando documentos…</p></div>
+    </section>
+  </div>
+
+  <!-- ============ ASISTENTE IA ============ -->
+  <div id="viewIA" class="hide">
+    <section class="card">
+      <h2>&#129302; Asistente de reglas (IA)</h2>
+      <p class="lead">Consultá las reglas de equivalencia y del trámite en lenguaje natural. Responde según las reglas cargadas en este prototipo.</p>
+      <div class="chips">
+        <span class="chip" onclick="askChip(this)">¿A qué año entra alguien de 6° de Bolivia a Bachiller?</span>
+        <span class="chip" onclick="askChip(this)">¿Qué documentos necesito para validar el pase?</span>
+        <span class="chip" onclick="askChip(this)">¿Por qué Brasil entra en un año más alto?</span>
+        <span class="chip" onclick="askChip(this)">¿Qué pasa si el alumno adeuda materias?</span>
+      </div>
+      <div class="chat" id="chat"></div>
+      <div class="chatin">
+        <input type="text" id="chatInput" placeholder="Escribí tu consulta…" onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="btn ai" id="btnChat" onclick="sendChat()">Enviar</button>
+      </div>
+    </section>
+  </div>
+
+  <p class="foot">Prototipo de demostración · Bolivia validado · resto a validar · IA asistida por Cowork · datos simulados · <span class="pill">DEMO</span></p>
+</div>
+
+<script>
+const FOLDER="";
+const DRIVE_TOOL="";
+const STEPS=["Datos","Validación","Análisis","Informe"];
+let current=1;
+const state={docs:{sello:true,campos:true}};
+
+/* ---------- países ---------- */
+const COUNTRIES={
+  Bolivia:{primaria:6,sec:6,estructura:'6 + 6',status:'validado',
+    map:{Bachiller:{1:1,2:2,3:3,4:4,5:5,6:5},Tecnica:{1:1,2:2,3:3,4:4,5:4,6:4}}},
+  Brasil:{primaria:9,sec:3,estructura:'9 + 3',status:'propuesta'},
+  Chile:{primaria:8,sec:4,estructura:'8 + 4',status:'propuesta'},
+  Paraguay:{primaria:9,sec:3,estructura:'9 + 3',status:'propuesta'},
+  Uruguay:{primaria:6,sec:6,estructura:'6 + 6',status:'propuesta'}
+};
+const CAP={Bachiller:5,Tecnica:6};
+function mapYear(pais,mod,anioCursado){const c=COUNTRIES[pais];if(c.map)return c.map[mod][anioCursado];return Math.min(Math.max(c.primaria+anioCursado-6,1),CAP[mod]);}
+function destino(pais,mod,anio,promo){const base=promo==='no'?Math.max(anio-1,1):anio;return mapYear(pais,mod,base);}
+function validated(pais){return COUNTRIES[pais].status==='validado';}
+function curricular(mod,anioOrigen){
+  if(mod==='Bachiller'){
+    if(anioOrigen===4) return {cambio:'Economía 3° año; Tecnologías de la información 3° año', saberes:'Saberes de 3° año de la especialidad seleccionada', modulo:null};
+    if(anioOrigen===5) return {cambio:'Economía 3° año; Tecnologías de la información 3° y 4° año', saberes:'Saberes de 3° y 4° año de la especialidad seleccionada', modulo:null};
+    return {cambio:'Ninguno', saberes:'Ninguno', modulo:null};
+  }
+  const dest=COUNTRIES.Bolivia.map.Tecnica[anioOrigen];const c=val('cuatri');
+  let modulo; if(dest===1 && c==='1') modulo='— (sin módulo: 1° cuatrimestre)'; else modulo=dest+(c==='1'?'A':'B');
+  return {cambio:'(según equivalencia de especialidad)', saberes:'Saberes del módulo '+modulo, modulo:modulo};
+}
+
+/* ---------- contexto de reglas para la IA ---------- */
+const RULES_CONTEXT={
+  proceso:"Validación de pases de Movilidad Estudiantil a escuelas secundarias de CABA. CABA: 7 años de primaria + 5 de secundaria (Bachiller) o 6 (Técnica).",
+  metodologia:"Año de ingreso en CABA = años de primaria del país de origen + año de secundaria cursado − 6, con tope en 5° (Bachiller) o 6° (Técnica), considerando que el alumno promociona en origen.",
+  paises:{Bolivia:"6+6, reglas VALIDADAS por el área. Bachiller 1->1,2->2,3->3,4->4,5->5,6->5. Técnica 1->1,2->2,3->3,4->4,5->4,6->4. Si adeuda al menos una materia NO promociona, por eso nunca tiene espacios curriculares pendientes de aprobación.",
+    Brasil:"9+3, propuesta MERCOSUR a validar.",Chile:"8+4, propuesta MERCOSUR a validar.",Paraguay:"9+3, propuesta MERCOSUR a validar.",Uruguay:"6+6, propuesta MERCOSUR a validar."},
+  documentos:"Para validar: firma y sello de autoridad competente, y campos de la libreta legibles (Gestión = ciclo lectivo del último año; Año de escolaridad; Informe de Promoción = si promociona o repite).",
+  informe:"Idioma: Bachiller = lengua adicional; Técnica = inglés. Módulos y saberes detallados solo documentados para Bolivia.",
+  casos:"Es caso complejo / requiere revisión si: falta documentación, el alumno no promociona, o el país no tiene reglas validadas (propuesta)."
+};
+
+/* ---------- IA bridge ---------- */
+function aiAvailable(){return !!(window.cowork && window.cowork.askClaude);}
+function withTimeout(promise,ms){return Promise.race([Promise.resolve(promise),new Promise((_,rej)=>setTimeout(()=>rej(new Error('La IA tardó demasiado en responder (timeout). Probá de nuevo o usá el pegado de texto.')),ms))]);}
+async function ai(prompt,data,ms){
+  if(!aiAvailable()) throw new Error("La IA se ejecuta dentro de la app Cowork. Abrí el artefacto en Cowork para usarla.");
+  const r=await withTimeout(window.cowork.askClaude(prompt, data||[]), ms||45000);
+  if(typeof r==='string') return r;
+  if(r==null) return '';
+  return r.text || r.content || r.response || r.message || (r.structuredContent? JSON.stringify(r.structuredContent): JSON.stringify(r));
+}
+function busy(id,on,label){const b=document.getElementById(id);b.disabled=on;if(on){b.dataset.t=b.textContent;b.innerHTML='<span class="spinner"></span>'+(label||'Procesando…');}else if(b.dataset.t){b.textContent=b.dataset.t;}}
+function showOut(id,txt){const o=document.getElementById(id);o.classList.remove('hide');o.textContent=txt;}
+function extractJSON(s){try{const m=s.match(/\{[\s\S]*\}/);return m?JSON.parse(m[0]):null;}catch(e){return null;}}
+
+/* ---------- 1) lectura de libreta ---------- */
+function fillSampleLibreta(){
+  document.getElementById('libreta').value="ESTADO PLURINACIONAL DE BOLIVIA — Ministerio de Educación. Libreta Escolar Electrónica. Gestión: 2025. Año de escolaridad: 4to de secundaria. Informe de promoción: PROMOVIDO DE AÑO. Unidad Educativa San Andrés. Firma y sello del Director y de la Dirección Distrital de Educación.";
+}
+function extractPrompt(){
+  return "Sos asistente del área de Movilidad Estudiantil (CABA). A partir de una libreta/constancia escolar extranjera, devolvé SOLO un objeto JSON con estas claves: "
+    +"pais (uno de: Bolivia, Brasil, Chile, Paraguay, Uruguay, u otro), anioSecundaria (entero del año de secundaria cursado), promociona (true si promociona/aprueba, false si repite/adeuda), "
+    +"selloPresente (true si hay firma o sello de autoridad), camposCompletos (true si están gestión, año e informe de promoción), notas (string breve). No agregues texto fuera del JSON.";
+}
+function applyExtraction(j,outId){
+  let applied=[];
+  if(j.pais && COUNTRIES[j.pais]){set('pais',j.pais);renderAnioOptions();applied.push('País: '+j.pais);}
+  if(j.anioSecundaria){const a=Math.min(parseInt(j.anioSecundaria)||1,COUNTRIES[val('pais')].sec);set('anio',String(a));applied.push('Año: '+a+'°');}
+  if(typeof j.promociona==='boolean'){set('promo',j.promociona?'promociona':'no');applied.push('Promoción: '+(j.promociona?'promociona':'no promociona'));}
+  if(typeof j.selloPresente==='boolean'){state.docs.sello=j.selloPresente;applied.push('Sello: '+(j.selloPresente?'presente':'falta'));}
+  if(typeof j.camposCompletos==='boolean'){state.docs.campos=j.camposCompletos;applied.push('Campos: '+(j.camposCompletos?'completos':'incompletos'));}
+  renderDocs();
+  showOut(outId,'✓ Datos extraídos y aplicados al formulario:\n• '+applied.join('\n• ')+(j.notas?('\n\nNota IA: '+j.notas):''));
+}
+async function extractLibreta(){
+  const txt=val('libreta').trim();
+  if(!txt){showOut('extractOut','Pegá primero el texto de la libreta o subí un archivo.');return;}
+  busy('btnExtract',true,'Extrayendo…');
+  try{
+    const out=await ai(extractPrompt()+" Texto de la libreta:\n"+txt,[{libreta:txt}]);
+    const j=extractJSON(out);
+    if(!j){showOut('extractOut','No pude interpretar la respuesta. Respuesta de la IA:\n'+out);return;}
+    applyExtraction(j,'extractOut');
+  }catch(e){showOut('extractOut','⚠ '+(e.message||e));}
+  finally{busy('btnExtract',false);}
+}
+function readFileData(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>rej(new Error('No se pudo leer el archivo'));fr.readAsDataURL(file);});}
+async function ocrLibreta(){
+  const inp=document.getElementById('libFile');const f=inp.files&&inp.files[0];
+  if(!f){showOut('extractOut','Elegí primero un archivo (foto o PDF de la libreta).');return;}
+  busy('btnOcr',true,'Leyendo (OCR)…');
+  try{
+    const dataUrl=await readFileData(f);
+    const out=await ai(extractPrompt()+" La libreta se adjunta como archivo (campo archivoLibreta, base64 data URL). Leé su contenido por OCR y extraé los campos.",
+      [{archivoLibreta:dataUrl, nombreArchivo:f.name, tipo:f.type}]);
+    const j=extractJSON(out);
+    if(!j){showOut('extractOut','No pude leer el archivo por OCR en este entorno.\n\nAlternativas: pegá el texto de la libreta más abajo, o subí el archivo directamente al chat de Cowork para que Claude lo lea con visión.\n\nRespuesta de la IA:\n'+String(out||'(vacía)').slice(0,400));return;}
+    applyExtraction(j,'extractOut');
+  }catch(e){showOut('extractOut','⚠ '+(e.message||e)+'\n\nAlternativa: subí el archivo al chat de Cowork para OCR con Claude.');}
+  finally{busy('btnOcr',false);}
+}
+
+/* ---------- 3) explicación del caso ---------- */
+async function explainCase(){
+  if(!state.result){showOut('explainOut','Generá primero el análisis.');return;}
+  busy('btnExplain',true,'Analizando…');
+  try{
+    const r=state.result;
+    const prompt="Sos asistente del área de Movilidad Estudiantil (CABA). Explicá en 3 a 5 oraciones, en tono claro y profesional, por qué este caso es "
+      +(r.isComplex?'COMPLEJO (requiere revisión)':'ESTÁNDAR')+" y qué debería revisar el operador. No inventes reglas fuera del contexto. Caso:";
+    const out=await ai(prompt,[{caso:r, reglas:RULES_CONTEXT}]);
+    showOut('explainOut',out);
+  }catch(e){showOut('explainOut','⚠ '+(e.message||e));}
+  finally{busy('btnExplain',false);}
+}
+
+/* ---------- 4) redacción del informe ---------- */
+async function draftReport(){
+  if(!state.result){showOut('draftOut','Generá primero el informe.');return;}
+  busy('btnDraft',true,'Redactando…');
+  try{
+    const r=state.result;
+    const prompt="Sos asistente del área de Movilidad Estudiantil (CABA). Redactá un borrador breve y formal del informe de equivalencia (5-8 líneas) "
+      +"y al final una línea 'OBSERVACIÓN SUGERIDA:' con una observación que deje libertad a la escuela para aplicar la resolución que corresponda. "
+      +"Usá solo los datos provistos. Datos del caso:";
+    const out=await ai(prompt,[{caso:r, reglas:RULES_CONTEXT}]);
+    showOut('draftOut',out);
+    const m=out.match(/OBSERVACI[ÓO]N SUGERIDA:\s*([\s\S]*)/i);
+    if(m && m[1]) document.getElementById('obs').value=m[1].trim();
+  }catch(e){showOut('draftOut','⚠ '+(e.message||e));}
+  finally{busy('btnDraft',false);}
+}
+
+/* ---------- 2) asistente chat ---------- */
+const history=[];
+function askChip(el){document.getElementById('chatInput').value=el.textContent;sendChat();}
+function addMsg(role,txt){const c=document.getElementById('chat');const d=document.createElement('div');d.className='msg '+(role==='u'?'u':'a');d.textContent=txt;c.appendChild(d);c.scrollTop=c.scrollHeight;return d;}
+async function sendChat(){
+  const inp=document.getElementById('chatInput');const q=inp.value.trim();if(!q)return;
+  inp.value='';addMsg('u',q);
+  const thinking=addMsg('a','…');
+  document.getElementById('btnChat').disabled=true;
+  try{
+    const prompt="Sos el asistente de reglas del área de Movilidad Estudiantil (CABA). Respondé en español, claro y conciso, basándote EXCLUSIVAMENTE en las reglas provistas. "
+      +"Si la respuesta no está en las reglas, decilo y sugerí validarlo con el área. Consulta del usuario: "+q;
+    const out=await ai(prompt,[{reglas:RULES_CONTEXT, historial:history.slice(-4)}]);
+    thinking.textContent=out;history.push({q,a:out});
+  }catch(e){thinking.textContent='⚠ '+(e.message||e);}
+  finally{document.getElementById('btnChat').disabled=false;}
+}
+
+/* ---------- tabs ---------- */
+function switchTab(t){
+  document.getElementById('viewSim').classList.toggle('hide',t!=='sim');
+  document.getElementById('viewRep').classList.toggle('hide',t!=='rep');
+  document.getElementById('viewIA').classList.toggle('hide',t!=='ia');
+  document.getElementById('tabSim').classList.toggle('active',t==='sim');
+  document.getElementById('tabRep').classList.toggle('active',t==='rep');
+  document.getElementById('tabIA').classList.toggle('active',t==='ia');
+  if(t==='rep'){renderRepo();loadDrive();}
+  if(t==='ia' && !document.getElementById('chat').children.length){
+    addMsg('a','Hola, soy el asistente de reglas de Movilidad. Preguntame sobre equivalencias por país, documentación requerida o por qué un caso es complejo.'+(aiAvailable()?'':'\n\n(Nota: la IA responde dentro de la app Cowork.)'));
+  }
+}
+
+/* ---------- stepper / form ---------- */
+function renderStepper(){const el=document.getElementById('stepper');el.innerHTML='';
+  STEPS.forEach((s,i)=>{const n=i+1;const cls=n<current?'done':(n===current?'active':'');
+    el.innerHTML+='<div class="step '+cls+'"><div class="dot">'+(n<current?'&#10003;':n)+'</div>'+s+'</div>';});}
+function show(n){current=n;for(let i=1;i<=4;i++)document.getElementById('step'+i).classList.toggle('hide',i!==n);renderStepper();window.scrollTo({top:0,behavior:'smooth'});}
+function toggleDoc(k){state.docs[k]=!state.docs[k];renderDocs();}
+function renderDocs(){document.querySelectorAll('.doc').forEach(d=>{const k=d.dataset.doc,on=state.docs[k];
+  d.classList.toggle('on',on);d.classList.toggle('off',!on);
+  d.querySelector('.tick').textContent=on?'✓':'✕';d.querySelector('.state').textContent=on?'Presente':'Falta';});refreshHint();}
+function renderAnioOptions(){const pais=val('pais'),sec=COUNTRIES[pais].sec,sel=document.getElementById('anio');
+  const prev=parseInt(sel.value)||1;sel.innerHTML='';
+  for(let i=1;i<=sec;i++){const o=document.createElement('option');o.value=i;o.textContent=i+'°';sel.appendChild(o);}
+  sel.value=Math.min(prev,sec);}
+function refreshHint(){const pais=val('pais'),c=COUNTRIES[pais],m=val('modalidad'),a=parseInt(val('anio')),p=val('promo');
+  const dest=destino(pais,m,a,p);const tagTxt=validated(pais)?'regla validada por el área':'propuesta estructural (base MERCOSUR), a validar';
+  let txt;
+  if(p==='no') txt='<b>'+pais+' ('+c.estructura+'):</b> «no promociona» → el alumno no completó '+a+'° año (requiere revisión). Vista previa: '+dest+'° año.';
+  else txt='<b>Vista previa ('+tagTxt+'):</b> '+pais+' '+a+'° de secundaria ('+m+') &rarr; ingresa a <b>'+dest+'° año</b> en CABA.';
+  document.getElementById('step1hint').innerHTML=txt;}
+
+const RFS=[
+  {rf:'RF-01', doc:'sello', label:'Firma y sello de autoridad competente', err:'La documentación no presenta firma/sello de autoridad. No es válida para certificar.'},
+  {rf:'RF-02', doc:'campos', label:'Campos de la libreta completos', err:'Faltan datos de la libreta (Gestión / Año de escolaridad / Informe de Promoción).'},
+];
+function goValidate(){
+  show(2);const fails=RFS.filter(r=>!state.docs[r.doc]);
+  const banner=document.getElementById('valBanner'),checks=document.getElementById('valChecks');checks.innerHTML='';
+  RFS.forEach(r=>{const ok=state.docs[r.doc];
+    checks.innerHTML+='<div class="checkrow '+(ok?'ok':'err')+'"><div class="ic">'+(ok?'✓':'✕')+'</div>'
+      +'<div class="body"><span class="rf">'+r.rf+'</span><b>'+r.label+'</b><div class="msg">'+(ok?'Verificado correctamente.':r.err)+'</div></div></div>';});
+  const noPromo=val('promo')==='no';
+  if(noPromo) checks.innerHTML+='<div class="checkrow err"><div class="ic">⚠</div><div class="body"><span class="rf">RF-03</span><b>Informe de Promoción</b><div class="msg">El alumno no promociona el año cursado. La equivalencia debe revisarse manualmente.</div></div></div>';
+  if(fails.length===0 && !noPromo){banner.innerHTML='<div class="banner ok"><span>✓</span><div><b>Documentación completa</b>Todos los requisitos verificados.</div></div>';sw('btnContinue',true);sw('btnComplex',false);}
+  else{banner.innerHTML='<div class="banner err"><span>⚠</span><div><b>Requisitos sin cumplir</b>No se puede continuar como caso estándar. Podés derivarlo como caso complejo.</div></div>';sw('btnContinue',false);sw('btnComplex',true);}
+}
+function sw(id,on){document.getElementById(id).classList.toggle('hide',!on);}
+
+function goAnalysis(forced){
+  show(3);
+  const pais=val('pais'),c=COUNTRIES[pais],mod=val('modalidad'),anio=parseInt(val('anio')),promo=val('promo');
+  const docsOk=RFS.every(r=>state.docs[r.doc]);const noPromo=promo==='no';const isVal=validated(pais);
+  const isComplex=forced||!docsOk||noPromo;const dest=destino(pais,mod,anio,promo);const cur=isVal?curricular(mod,anio):null;
+  const banner=document.getElementById('anBanner'),rules=document.getElementById('anRules'),res=document.getElementById('anResult'),tag=document.getElementById('caseTag');
+  tag.textContent=isComplex?'Caso complejo':'Caso estándar';tag.className='tag '+(isComplex?'complex':'std');
+  document.getElementById('an3lead').textContent=isVal?'Se aplican las reglas documentadas por el área.':'Equivalencia estructural (base MERCOSUR). A validar por el área.';
+  rules.innerHTML=
+    '<div class="checkrow ok"><div class="ic">\u{1F4D8}</div><div class="body"><span class="rf">Estructura</span><b>'+pais+' '+c.estructura+' vs CABA 7+5 / 7+6</b><div class="msg">'+(c.primaria>7?'Primaria más larga que CABA: puede ubicarse en un año superior.':(c.primaria<7?'Primaria más corta: el desfase desplaza la equivalencia en años superiores.':'Misma cantidad de años de primaria que CABA.'))+'</div></div></div>'
+   +'<div class="checkrow ok"><div class="ic">\u{1F4D7}</div><div class="body"><span class="rf">Promoción</span><b>'+(noPromo?'No promociona':'Promociona')+'</b><div class="msg">'+(noPromo?'Adeuda materias: se analiza sobre el último año aprobado ('+Math.max(anio-1,1)+'°).':'Promociona el año cursado; equivalencia directa.')+'</div></div></div>'
+   +'<div class="checkrow '+(isVal?'ok':'err')+'"><div class="ic">'+(isVal?'\u{1F5C2}':'⚑')+'</div><div class="body"><span class="rf">Mapeo</span><b>Año '+anio+'° &rarr; '+dest+'° año ('+modName(mod)+')</b><div class="msg">'+(isVal?'Según la relación año origen/destino documentada.':'Propuesta estructural: primaria '+c.primaria+' + '+anio+' − 6 = '+dest+'° (tope '+CAP[mod]+'). Requiere validación.')+'</div></div></div>';
+  banner.innerHTML=isComplex?'<div class="banner warn"><span>⚑</span><div><b>Requiere revisión adicional</b>'+(noPromo?'Caso de no promoción: ':'')+'se deriva al circuito de casos complejos antes de emitir.</div></div>'
+    :(isVal?'<div class="banner ok"><span>✓</span><div><b>Equivalencia automática</b>El caso puede resolverse por el circuito estándar.</div></div>'
+           :'<div class="banner warn"><span>⚑</span><div><b>Equivalencia propuesta — a validar</b>Resultado por regla estructural; confirmar con el área / Tabla MERCOSUR.</div></div>');
+  res.innerHTML='<dt>País / estructura</dt><dd>'+pais+' · '+c.estructura+'</dd>'
+   +'<dt>Modalidad destino</dt><dd>'+modName(mod)+'</dd><dt>Año de secundaria (origen)</dt><dd>'+anio+'°</dd>'
+   +'<dt>Informe de Promoción</dt><dd>'+(noPromo?'No promociona':'Promociona')+'</dd>'
+   +'<dt>Año de ingreso (CABA)</dt><dd>'+dest+'° año</dd>'
+   +'<dt>Idioma</dt><dd>'+(mod==='Bachiller'?'Lengua adicional':'Inglés')+'</dd>'
+   +'<dt>Fuente de la regla</dt><dd>'+(isVal?'Validada por el área':'Propuesta (base MERCOSUR)')+'</dd>';
+  document.getElementById('explainOut').classList.add('hide');
+  state.result={pais,mod,anio,promo,noPromo,dest,cur,docsOk,isComplex,isVal};
+}
+function modName(m){return m==='Tecnica'?'Técnica':'Bachiller';}
+
+function goReport(){
+  show(4);const r=state.result,box=document.getElementById('reportBox');const date=new Date().toLocaleDateString('es-AR');
+  let extra='';
+  if(r.isVal){
+    if(r.mod==='Bachiller') extra='<div class="line"><span>Espacios pendientes de aprobación</span><b>Ninguno</b></div><div class="line"><span>Pendientes por cambio de plan</span><b>'+r.cur.cambio+'</b></div><div class="line"><span>Saberes a completar</span><b>'+r.cur.saberes+'</b></div>';
+    else extra='<div class="line"><span>Módulo</span><b>'+(r.cur.modulo||'—')+'</b></div><div class="line"><span>Saberes a completar</span><b>'+r.cur.saberes+'</b></div>';
+  }else extra='<div class="line"><span>Espacios curriculares / módulos</span><b>A definir por el área</b></div>';
+  box.innerHTML='<h4>Informe de equivalencia — '+modName(r.mod)+' — BORRADOR</h4>'
+   +'<p class="small">Generado '+date+' · Trámite simulado N° DEMO-'+Math.floor(Math.random()*9000+1000)+'</p>'
+   +'<div class="line"><span>País de origen</span><b>'+r.pais+' ('+COUNTRIES[r.pais].estructura+')</b></div>'
+   +'<div class="line"><span>Año de secundaria (origen)</span><b>'+r.anio+'°</b></div>'
+   +'<div class="line"><span>Informe de Promoción</span><b>'+(r.noPromo?'No promociona':'Promociona')+'</b></div>'
+   +'<div class="line"><span>Año de ingreso (CABA)</span><b>'+r.dest+'° año</b></div>'
+   +'<div class="line"><span>Idioma</span><b>'+(r.mod==='Bachiller'?'Lengua adicional':'Inglés')+'</b></div>'+extra
+   +'<div class="line"><span>Fuente de la regla</span><b>'+(r.isVal?'Validada por el área':'Propuesta (base MERCOSUR)')+'</b></div>'
+   +'<div class="line"><span>Clasificación</span><b>'+(r.isComplex?'Caso complejo':'Caso estándar')+'</b></div>'
+   +'<div class="verdict" style="background:'+((r.isComplex||!r.isVal)?'var(--warn-bg)':'var(--ok-bg)')+';color:'+((r.isComplex||!r.isVal)?'var(--warn)':'var(--ok)')+'">'
+   +(r.isComplex?'⚑ Sujeto a revisión por circuito de casos complejos.':(r.isVal?'✓ Equivalencia resuelta por circuito estándar.':'⚑ Equivalencia propuesta (base MERCOSUR): validar antes de emitir.'))+'</div>';
+  document.getElementById('draftOut').classList.add('hide');document.getElementById('emitMsg').innerHTML='';
+}
+function emit(){const obs=val('obs').trim();
+  document.getElementById('emitMsg').innerHTML='<div class="banner ok" style="margin-top:14px"><span>✓</span><div><b>Informe emitido (simulado)</b>'+(obs?'Observaciones incorporadas al expediente.':'Sin observaciones adicionales.')+'</div></div>';}
+
+/* ---------- presets ---------- */
+function loadPreset(kind){switchTab('sim');
+  if(kind==='clean'){set('pais','Bolivia');renderAnioOptions();set('modalidad','Bachiller');set('anio','4');set('promo','promociona');set('gestion','2025');set('cuatri','1');state.docs={sello:true,campos:true};}
+  else{set('pais','Brasil');renderAnioOptions();set('modalidad','Tecnica');set('anio','2');set('promo','no');set('gestion','2025');set('cuatri','2');state.docs={sello:false,campos:true};}
+  renderDocs();show(1);}
+function val(id){return document.getElementById(id).value;}
+function set(id,v){document.getElementById(id).value=v;}
+
+/* ---------- repositorio ---------- */
+function renderRepo(){
+  document.getElementById('paisStatus').innerHTML=Object.keys(COUNTRIES).map(p=>{const c=COUNTRIES[p];
+    const b=c.status==='validado'?'<span class="badge val">Validado por el área</span>':'<span class="badge prop">Propuesta (MERCOSUR)</span>';
+    return '<tr><td class="l">'+p+'</td><td>'+c.estructura+'</td><td>'+c.sec+'</td><td>'+b+'</td></tr>';}).join('');
+  document.getElementById('repoTables').innerHTML=Object.keys(COUNTRIES).map(p=>{const c=COUNTRIES[p];
+    const b=c.status==='validado'?'<span class="badge val">Validado</span>':'<span class="badge prop">Propuesta</span>';let rows='';
+    for(let n=1;n<=c.sec;n++){const db=mapYear(p,'Bachiller',n),dt=mapYear(p,'Tecnica',n);
+      rows+='<tr><td>'+n+'</td><td>'+db+'</td><td>'+dt+'</td></tr>';}
+    return '<div class="repocountry"><h3>'+p+' &middot; '+c.estructura+' '+b+'</h3><table class="rules"><thead><tr><th>Año origen</th><th>Bachiller</th><th>Técnica</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }).join('');
+}
+
+/* ---------- Drive ---------- */
+function loadDrive(){
+  const box=document.getElementById('driveList');
+  box.innerHTML='<p class="muted-sm">Los documentos de referencia (minutas, ejemplos de trámites, plantillas) están en la carpeta interna del proyecto en Drive, con acceso restringido al equipo. Esta versión no se conecta a Drive.</p>';
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+/* ---------- init ---------- */
+document.getElementById('pais').addEventListener('change',()=>{renderAnioOptions();refreshHint();});
+['modalidad','anio','promo','cuatri'].forEach(id=>document.getElementById(id).addEventListener('change',refreshHint));
+renderAnioOptions();set('anio','4');renderDocs();show(1);
+</script>
+</body>
+</html>
